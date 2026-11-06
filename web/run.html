@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J2ME Editor</title>
+</head>
+<style>
+    html, body {
+        height: 100%;
+    }
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: sans;
+    }
+    #screen-area {
+        background-color: #eee;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #display {
+        background-color: white;
+        zoom: 1;
+        image-rendering: pixelated; /* affects zoom */
+    }
+    #display:focus {
+        outline: none;
+    }
+    #loading {
+        font-size: 2em;
+    }
+
+    .keypad-part {
+        background-color: #222; /* Dark background for keypad areas */
+        padding: 8px;
+        display: flex; /* Use flex to center the grid */
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent; /* Disable tap highlight on mobile */
+    }
+
+    .key-grid {
+        display: grid;
+        gap: 6px; /* Space between keys */
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Grid definitions */
+    .left-grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+    }
+
+    .right-grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+    }
+
+    /* Individual Key Styles */
+    .key {
+        background-color: #3a3a3a; /* Dark key background */
+        color: #e0e0e0; /* Light key text */
+        border: 1px solid #555;
+        border-radius: 5px;
+        font-size: 1.5em; /* Larger text */
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column; /* Allow stacking number/letters */
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        user-select: none; /* Prevent text selection on click/drag */
+        transition: background-color 0.1s ease, transform 0.05s ease;
+        line-height: 1.1;
+    }
+    .key span { /* Style for secondary text like ABC */
+        font-size: 0.4em;
+        font-weight: normal;
+        margin-top: 2px;
+        color: #aaa;
+    }
+
+    .key.active {
+        background-color: #6a6a6a;
+        transform: scale(0.95); /* Slight shrink effect on press */
+    }
+
+    .arrow-key {
+        font-size: 2em; /* Make arrows bigger */
+    }
+
+    .ok-key {
+        font-size: 1.3em;
+    }
+
+    /* Styles for specifically smaller keys */
+    .small-key {
+        /* Instead of scaling the whole button, we control its size within the grid cell */
+        width: 70%;
+        height: 70%;
+        font-size: 0.9em;
+        align-self: end;   /* Center vertically in grid cell */
+        /* Ensure padding/border don't make it too big */
+        padding: 2px;
+        line-height: 1;
+    }
+
+    .small-key-left {
+        justify-self: left;
+    }
+
+    .small-key-right {
+        justify-self: right;
+    }
+
+
+    #left-keys,
+    #right-keys {
+        display: none;
+        position: absolute;
+        bottom: 0;
+    }
+
+    #left-keys {
+        left: 0;
+    }
+
+    #right-keys {
+        right: 0;
+    }
+
+    #screen-area {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    body.kbd-portrait #left-keys,
+    body.kbd-portrait #right-keys,
+    body.kbd-landscape #left-keys,
+    body.kbd-landscape #right-keys {
+        display: flex;
+    }
+
+    body.kbd-portrait #left-keys,
+    body.kbd-portrait #right-keys {
+        width: 50%;
+        height: 220px;
+    }
+
+    body.kbd-landscape #left-keys,
+    body.kbd-landscape #right-keys {
+        width: 220px;
+        height: 100%;
+    }
+
+    /* max height in landscape mode */
+    body.kbd-landscape #left-keys .key-grid,
+    body.kbd-landscape #right-keys .key-grid {
+        max-height: 400px;
+    }
+
+    body.kbd-portrait #screen-area {
+        bottom: 220px;
+    }
+
+    body.kbd-landscape #screen-area {
+        left: 220px;
+        right: 220px;
+    }
+
+</style>
+<body>
+    <div id="screen-area">
+        <canvas tabindex="0" id="display" style="display: none;"></canvas>
+        <div id="loading">Loading...</div>
+    </div>
+    <div id="left-keys" class="keypad-part">
+        <div class="key-grid left-grid">
+            <button data-key="Digit1" class="key">1</button>
+            <button data-key="Digit2" class="key">2 <span>ABC</span></button>
+            <button data-key="Digit3" class="key">3 <span>DEF</span></button>
+            <button data-key="Digit4" class="key">4 <span>GHI</span></button>
+            <button data-key="Digit5" class="key">5 <span>JKL</span></button>
+            <button data-key="Digit6" class="key">6 <span>MNO</span></button>
+            <button data-key="Digit7" class="key">7 <span>PQRS</span></button>
+            <button data-key="Digit8" class="key">8 <span>TUV</span></button>
+            <button data-key="Digit9" class="key">9 <span>WXYZ</span></button>
+            <button data-key="NumpadAsterisk" class="key">*</button>
+            <button data-key="Digit0" class="key">0 <span>+</span></button>
+            <button data-key="NumpadDivide" class="key">#</button>
+        </div>
+    </div>
+    <div id="right-keys" class="keypad-part">
+         <div class="key-grid right-grid">
+            <button data-key="F1" class="key">L</button>
+            <button data-key="ArrowUp" class="key arrow-key" aria-label="Up">↑</button>
+            <button data-key="F2" class="key">R</button>
+            <button data-key="ArrowLeft" class="key arrow-key" aria-label="Left">←</button>
+            <button data-key="Enter" class="key ok-key">OK</button>
+            <button data-key="ArrowRight" class="key arrow-key" aria-label="Right">→</button>
+            <button data-key="Escape" class="key small-key small-key-left">Esc</button>
+            <button data-key="ArrowDown" class="key arrow-key" aria-label="Down">↓</button>
+            <button data-key="Maximize" class="key small-key small-key-right" aria-label="Maximize">⛶</button>
+        </div>
+    </div>
+
+    <button id="editor-fab" type="button">⚡ Valores</button>
+    <div id="editor-panel" hidden>
+        <div id="editor-head">
+            <strong>Editor de valores en vivo</strong>
+            <button id="editor-close" type="button">✕</button>
+        </div>
+        <div class="editor-row">
+            <input id="editor-search" type="text" inputmode="decimal" placeholder="Valor actual (ej. 250)" />
+            <button id="editor-scan" type="button">Buscar</button>
+        </div>
+        <div class="editor-row">
+            <input id="editor-refine" type="text" inputmode="decimal" placeholder="Nuevo valor tras jugar" />
+            <button id="editor-refine-btn" type="button">Refinar</button>
+        </div>
+        <div id="editor-status">Buscá el número que querés cambiar. Si hay muchos resultados, jugá un poco y refiná con el nuevo valor.</div>
+        <div id="editor-results"></div>
+        <div class="editor-row">
+            <input id="editor-newval" type="text" inputmode="decimal" placeholder="Valor deseado (ej. 999999)" />
+            <button id="editor-set" type="button">Cambiar</button>
+        </div>
+        <div id="editor-note">Después de cambiar un valor, guardá la partida dentro del juego para que quede.</div>
+    </div>
+    <style>
+        #editor-fab { position: fixed; top: 8px; right: 8px; z-index: 1000; background: #4a6cb3; color: #fff; border: 0; border-radius: 20px; padding: 10px 14px; font-size: 15px; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+        #editor-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(340px, 92vw); background: #1e1e24; color: #eee; z-index: 1001; padding: 12px; overflow-y: auto; font-family: sans-serif; box-shadow: -2px 0 12px rgba(0,0,0,.5); }
+        #editor-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        #editor-close { background: none; border: 0; color: #aaa; font-size: 20px; }
+        .editor-row { display: flex; gap: 6px; margin: 8px 0; }
+        .editor-row input { flex: 1; min-width: 0; background: #2c2c34; color: #eee; border: 1px solid #444; border-radius: 6px; padding: 10px; font-size: 15px; }
+        .editor-row button { background: #6fc276; color: #111; border: 0; border-radius: 6px; padding: 10px 14px; font-size: 15px; font-weight: bold; }
+        #editor-status { font-size: 13px; color: #bbb; margin: 8px 0; white-space: pre-wrap; }
+        #editor-note { font-size: 12px; color: #998; margin-top: 10px; }
+        .editor-match { display: flex; align-items: center; gap: 6px; padding: 8px; background: #2c2c34; border-radius: 6px; margin: 4px 0; font-size: 13px; }
+        .editor-match.sel { outline: 2px solid #6fc276; }
+        .editor-match .p { flex: 1; word-break: break-all; }
+        .editor-match .v { color: #6fc276; font-weight: bold; }
+    </style>
+    <script src="https://cjrtnc.leaningtech.com/20260317_2978/loader.js"></script>
+    <script type="module" src="src/main-live.js"></script>
+</body>
+</html>
