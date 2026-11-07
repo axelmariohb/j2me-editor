@@ -14,6 +14,27 @@ import mediaBridgeNatives from "../libjs/libmediabridge.js";
 import midiBridgeNatives from "../libjs/libmidibridge.js";
 
 
+
+// ===== Diagnóstico de carga visible (agregado 2026-11-06) =====
+function leShowError(prefix, msg) {
+    const el = document.getElementById("loading");
+    if (!el) return;
+    el.style.fontSize = "1.05em";
+    el.style.padding = "1.2em";
+    el.style.lineHeight = "1.5";
+    el.style.whiteSpace = "pre-wrap";
+    el.style.cursor = "pointer";
+    el.textContent = prefix + msg + "\n\nTocá acá para reintentar.";
+    el.onclick = () => location.reload();
+}
+window.addEventListener("error", (e) => {
+    leShowError("Error al cargar: ", (e.message || "desconocido") + (e.filename ? " (" + e.filename.split("/").pop() + ":" + e.lineno + ")" : ""));
+});
+window.addEventListener("unhandledrejection", (e) => {
+    const r = e.reason;
+    leShowError("Error al cargar: ", String((r && (r.message || r.reason)) || r || "desconocido"));
+});
+
 // ===== Editor de valores en vivo =====
 let __leCmd = null, __leResolve = null;
 window.liveEditExec = (cmd) => new Promise((res) => { __leCmd = cmd; __leResolve = res; });
@@ -308,7 +329,11 @@ async function ensureAppInstalled(lib, appId) {
 
 async function init() {
     initEditorUI();
-    document.getElementById("loading").textContent = "Cargando...";
+    document.getElementById("loading").textContent = "Cargando el motor Java... La primera vez en el teléfono puede tardar 1-2 minutos.";
+    document.getElementById("loading").style.whiteSpace = "pre-wrap";
+    document.getElementById("loading").style.padding = "1em";
+    document.getElementById("loading").style.fontSize = "1.3em";
+    document.getElementById("loading").style.lineHeight = "1.5";
 
     display = document.getElementById('display');
     screenCtx = display.getContext('2d');
@@ -401,7 +426,7 @@ async function init() {
         }
     });
 
-    document.getElementById("loading").textContent = "Loading...";
+    document.getElementById("loading").textContent = "Iniciando el juego...";
 
     const lib = await cheerpjRunLibrary(cheerpjWebRoot+"/freej2me-web.jar");
 
@@ -426,4 +451,4 @@ async function init() {
 
 }
 
-init();
+init().catch(e => leShowError("Error al iniciar: ", String((e && e.message) || e)));
