@@ -1,6 +1,27 @@
 // note that we can only call java stuff if thread not running..
 const cheerpjWebRoot = '/app'+location.pathname.replace(/\/$/,'');
 
+
+// ===== Diagnóstico de carga visible (agregado 2026-11-06) =====
+function leShowError(prefix, msg) {
+    const el = document.getElementById("loading");
+    if (!el) return;
+    el.style.fontSize = "1.05em";
+    el.style.padding = "1.2em";
+    el.style.lineHeight = "1.5";
+    el.style.whiteSpace = "pre-wrap";
+    el.style.cursor = "pointer";
+    el.textContent = prefix + msg + "\n\nTocá acá para reintentar.";
+    el.onclick = () => location.reload();
+}
+window.addEventListener("error", (e) => {
+    leShowError("Error al cargar: ", (e.message || "desconocido") + (e.filename ? " (" + e.filename.split("/").pop() + ":" + e.lineno + ")" : ""));
+});
+window.addEventListener("unhandledrejection", (e) => {
+    const r = e.reason;
+    leShowError("Error al cargar: ", String((r && (r.message || r.reason)) || r || "desconocido"));
+});
+
 const emptyIcon = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
 let lib = null, launcherUtil = null;
@@ -13,14 +34,35 @@ let state = {
 let defaultSettings = {};
 
 async function main() {
-    document.getElementById("loading").textContent = "Loading CheerpJ...";
+    const loadEl = document.getElementById("loading");
+    const t0 = Date.now();
+    let stage = "Descargando el motor Java...";
+    let hinted = false;
+    const loadTick = setInterval(() => {
+        const s = Math.round((Date.now() - t0) / 1000);
+        let extra = "";
+        if (s >= 90 && !hinted) {
+            hinted = true;
+            extra = "\n\nEstá tardando más de lo normal. Probá cerrar otras pestañas de Chrome y esperar un poco más.";
+        }
+        loadEl.textContent = stage + " (" + s + "s)" + extra;
+        loadEl.style.whiteSpace = "pre-wrap";
+        loadEl.style.padding = "1em";
+        loadEl.style.fontSize = s >= 5 ? "1.3em" : "";
+        loadEl.style.lineHeight = "1.5";
+    }, 1000);
+
+    stage = "Descargando el motor Java... La primera vez en el teléfono puede tardar 1-2 minutos.";
+    loadEl.textContent = stage;
     await cheerpjInit({
         enableDebug: false
     });
 
+    stage = "Iniciando el emulador...";
     lib = await cheerpjRunLibrary(cheerpjWebRoot+"/freej2me-web.jar");
 
-    document.getElementById("loading").textContent = "Loading...";
+    stage = "Cargando juegos...";
+    loadEl.textContent = "Cargando juegos...";
 
     launcherUtil = await lib.pl.zb3.freej2me.launcher.LauncherUtil;
 
@@ -31,6 +73,7 @@ async function main() {
 
     await reloadUI();
 
+    clearInterval(loadTick);
     document.getElementById("loading").style.display = "none";
     document.getElementById("main").style.display = "";
 
@@ -562,4 +605,4 @@ async function doExportData() {
     }
 }
 
-main();
+main().catch(e => leShowError("Error al iniciar: ", String((e && e.message) || e)));
