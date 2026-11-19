@@ -281,16 +281,22 @@ function setListeners() {
         e.preventDefault();
     });
 
+    // No robar el foco mientras se escribe en el panel del editor:
+    // en Android, enfocar el canvas cierra el teclado en pantalla.
+    function leEditorTieneFoco() {
+        const ae = document.activeElement;
+        return !!(ae && ae.closest && ae.closest('#editor-panel'));
+    }
+
     document.addEventListener('mousedown', e => {
-        console.log('refocus');
-        setTimeout(() => display.focus(), 20);
+        if (e.target && e.target.closest && e.target.closest('#editor-panel')) return;
+        setTimeout(() => { if (!leEditorTieneFoco()) display.focus(); }, 20);
         ;
     });
 
     display.addEventListener('blur', e => {
-        console.log('refocus');
         // it doesn't work without any timeout
-        setTimeout(() => display.focus(), 10);
+        setTimeout(() => { if (!leEditorTieneFoco()) display.focus(); }, 10);
         ;
     });
 
