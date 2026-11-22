@@ -16,8 +16,13 @@ export class EventQueue {
 
     queueEvent(evt, skipIfExists=null) {
         if (!this.started) return;
-        if (skipIfExists && this.queue.some(skipIfExists)) {
-            return;
+        if (skipIfExists) {
+            // coalesce: keep only the newest event of this kind in the queue
+            const idx = this.queue.findIndex(skipIfExists);
+            if (idx !== -1) {
+                this.queue[idx] = evt;
+                return;
+            }
         }
         this.queue.push(evt);
         if (this.resolvePromise) {
