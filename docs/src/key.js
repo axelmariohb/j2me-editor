@@ -65,7 +65,7 @@ export const codeMap = {
 
 export class KeyRepeatManager {
     static TIME_TO_FIRST_REPEAT = 500;
-    static REPEAT_INTERVAL = 30;
+    static REPEAT_INTERVAL = 66;
 
     keyStates = new Map();
     listener = null;

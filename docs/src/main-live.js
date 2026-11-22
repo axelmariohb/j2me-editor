@@ -115,6 +115,31 @@ const cheerpjWebRoot = '/app'+location.pathname.replace(/\/[^/]*$/,'');
 let isMobile = sp.get('mobile');
 if (isMobile === null && (('ontouchstart' in window) || navigator.maxTouchPoints > 0)) isMobile = '1';
 
+// Ocultar botones virtuales = juego a pantalla completa (para juegos tactiles)
+let kbdHidden = false;
+try { kbdHidden = localStorage.getItem("pl.zb3.freej2me.hideKbd") === "true"; } catch (e) {}
+if (isMobile) document.body.classList.add('is-mobile');
+
+function setKbdHidden(hidden) {
+    kbdHidden = hidden;
+    try { localStorage.setItem("pl.zb3.freej2me.hideKbd", String(hidden)); } catch (e) {}
+    autoscale();
+}
+
+// Mantener la pantalla encendida mientras se juega (evita que el telefono
+// suspenda y "tilde" el juego al volver)
+let __wakeLock = null;
+async function leRequestWakeLock() {
+    try {
+        if (navigator.wakeLock && (!__wakeLock || __wakeLock.released)) {
+            __wakeLock = await navigator.wakeLock.request('screen');
+        }
+    } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') leRequestWakeLock();
+});
+
 let display = null;
 let screenCtx = null;
 
@@ -132,7 +157,12 @@ function autoscale() {
     let screenWidth = window.innerWidth;
     let screenHeight = window.innerHeight;
 
-    if (isMobile) {
+    if (isMobile && kbdHidden) {
+        document.body.classList.add('kbd-hidden');
+        document.body.classList.remove('kbd-portrait');
+        document.body.classList.remove('kbd-landscape');
+    } else if (isMobile) {
+        document.body.classList.remove('kbd-hidden');
         document.getElementById('left-keys').style.display = '';
         document.getElementById('right-keys').style.display = '';
 
@@ -192,7 +222,6 @@ function setListeners() {
                 autoscale();
             }
         } else if (codeMap[key]) {
-            console.log('queuin event');
             evtQueue.queueEvent({
                 kind: kind === 'up' ? 'keyup' : 'keydown',
                 args: [codeMap[key], args.symbol, args.ctrlKey, args.shiftKey]
@@ -223,7 +252,7 @@ function setListeners() {
             kind: 'pointerdragged',
             x: e.offsetX / display.currentCSSZoom | 0,
             y: e.offsetY / display.currentCSSZoom | 0,
-        });
+        }, ev => ev.kind === 'pointerdragged');
 
         e.preventDefault();
     });
@@ -246,6 +275,7 @@ function setListeners() {
 
     display.addEventListener('touchstart', async e => {
         display.focus();
+        leRequestWakeLock();
         noMouse = true;
 
         evtQueue.queueEvent({
@@ -264,7 +294,7 @@ function setListeners() {
             kind: 'pointerdragged',
             x: (e.changedTouches[0].pageX - display.offsetLeft) / display.currentCSSZoom | 0,
             y: (e.changedTouches[0].pageY - display.offsetTop) / display.currentCSSZoom | 0,
-        });
+        }, ev => ev.kind === 'pointerdragged');
 
         e.preventDefault();
     }, {passive: false});
@@ -301,6 +331,23 @@ function setListeners() {
     });
 
     window.addEventListener('resize', autoscale);
+
+    const kbdToggle = document.getElementById('kbd-toggle');
+    if (kbdToggle) {
+        kbdToggle.addEventListener('click', async () => {
+            const hidden = !kbdHidden;
+            setKbdHidden(hidden);
+            // Pantalla completa de verdad al ocultar botones (oculta la barra del navegador)
+            try {
+                if (hidden && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                } else if (!hidden && document.fullscreenElement && document.exitFullscreen) {
+                    await document.exitFullscreen();
+                }
+            } catch (e) {}
+            setTimeout(autoscale, 300);
+        });
+    }
 
     initKbdListeners();
 }

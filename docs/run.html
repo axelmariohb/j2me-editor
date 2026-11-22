@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>J2ME Editor</title>
 </head>
 <style>
@@ -29,6 +29,7 @@
         background-color: white;
         zoom: 1;
         image-rendering: pixelated; /* affects zoom */
+        touch-action: none; /* no scroll/zoom gestures stealing touches from the game */
     }
     #display:focus {
         outline: none;
@@ -169,6 +170,36 @@
         height: 100%;
     }
 
+    /* hide-keypad fullscreen mode (touch games) */
+    body.kbd-hidden #left-keys,
+    body.kbd-hidden #right-keys {
+        display: none !important;
+    }
+
+    .key {
+        touch-action: manipulation; /* avoid double-tap zoom delay on mobile */
+    }
+
+    #kbd-toggle {
+        display: none;
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        z-index: 1000;
+        background: rgba(34, 34, 34, 0.55);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,.25);
+        border-radius: 50%;
+        width: 42px;
+        height: 42px;
+        font-size: 19px;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+    }
+    body.is-mobile #kbd-toggle {
+        display: block;
+    }
+
     /* max height in landscape mode */
     body.kbd-landscape #left-keys .key-grid,
     body.kbd-landscape #right-keys .key-grid {
@@ -220,6 +251,7 @@
         </div>
     </div>
 
+    <button id="kbd-toggle" type="button" aria-label="Mostrar u ocultar botones" title="Mostrar/ocultar botones">🎮</button>
     <button id="editor-fab" type="button">⚡ Valores</button>
     <div id="editor-panel" hidden>
         <div id="editor-head">
